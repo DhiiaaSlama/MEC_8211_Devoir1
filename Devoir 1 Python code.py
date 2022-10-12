@@ -1,0 +1,224 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 10 09:53:01 2022
+Ecole Polytechnique Montreal - Universite de Montreal
+MEC 8211 : Vérif. et valid. en modélisation numérique
+@authors: Houssem Eddine Younes & Mohamed Dhia Slama
+October 2022
+
+"""
+
+import numpy as np
+import sympy as sp
+import matplotlib.pyplot as plt
+from matplotlib.offsetbox import AnchoredText
+from scipy.sparse.linalg.dsolve import linsolve 
+
+#ggplot style for more sophisticated visuals
+plt.style.use('ggplot')
+
+def calculations_kernel(i_schemas): 
+    Matrix = np.zeros([N_r+1,N_r+1])
+    C_new = np.zeros([N_r+1,N_t])
+    C_old = np.zeros([N_r+1])
+    r=np.linspace(0,R,N_r+1)
+    
+    #Creation de la matrice A 
+    #Discretisation de gear pour la CL de neumann a r = 0 
+    Matrix[0,0] = -3
+    Matrix[0,1] = 4 
+    Matrix[0,2] = -1 
+    Matrix[N_r,N_r] = 1
+    
+    for i in range(1,N_r): 
+        A,B,C = schemas_numeriques(i,i_schemas,r)
+        Matrix[i,i] =  A 
+        Matrix[i,i-1] = C 
+        Matrix[i,i+1] = B 
+    
+    #Conditions initiales 
+    C_old[:] = 0 
+    #Ajout du terme source dans le vecteur de droite 
+    C_old[1:N_r] -= Delt_t*S
+    
+    #Conditions aux limites pour la premiere iteration 
+    C_old[N_r] = Ce
+    
+    #Real-time plotting
+    #line1 = []
+    
+    Erreur = 10
+    t= 0 
+    # for t in range(1,N_t):
+    while Erreur >= 10**(-6) :
+        t = t+1
+        C_new[:,t] = np.linalg.solve(Matrix,C_old)
+        
+        #Calcul d'erreur entre iteration : Condition d'arret
+        Erreur = sum(abs(C_new[:,t])-abs(C_old))
+        #Assignation de C caluclee a C_old
+        C_old = np.copy(C_new[:,t])
+        #Terme source
+        C_old[1:N_r] = C_old[1:N_r] - Delt_t*S
+        #Dirichlet pour r = R
+        C_old[N_r] = Ce
+        #Neumann
+        C_old[0] = 0
+        print("iteration "+str(t)+"," + "erreur :" + str(Erreur))
+        
+        #line1 = live_plotter(r,C_new[:,t],line1)
+    kk = 0 
+    return C_new,r
+def schemas_numeriques(i,schema,r): 
+    # Schemas avec termes source constant (pour le devoir 1)
+    if schema == 0 :  # 1er schema
+        #Diag
+        A = (1+D_eff*Delt_t/(Delt_r*r[i])+2*D_eff*Delt_t/(Delt_r**2))
+        #Ci+1
+        B =  (-D_eff*Delt_t/(Delt_r*r[i])-D_eff*Delt_t/(Delt_r**2))
+        #Ci-1
+        C= (-D_eff*Delt_t)/(Delt_r**2)
+    elif schema == 1: # 2eme schema
+        #Diag
+        A = (1+2*D_eff*Delt_t/(Delt_r**2))
+        #Ci+1
+        B=  (-D_eff*Delt_t/(2*Delt_r*r[i])-D_eff*Delt_t/(Delt_r**2))
+        #Ci-1
+        C= (D_eff*Delt_t/(2*Delt_r*r[i])-D_eff*Delt_t/(Delt_r**2))
+    #Schemas avec terme source de premier ordre (pour le devoir 2 ) question D
+    elif schema ==2 : # 1er schema VAR
+        #Diag
+        A = (Delt_r**2+D_eff*Delt_t*Delt_r/r[i]+2*D_eff*Delt_t)/((Delt_r**2)*(1-k*Delt_t))
+        #Ci+1
+        B= (-D_eff*Delt_t*Delt_r/r[i]-D_eff*Delt_t)/((Delt_r**2)*(1-k*Delt_t))
+        #Ci-1
+        C= (-D_eff*Delt_t)/((Delt_r**2)*(1-k*Delt_t))
+    elif schema ==3: #2eme schema VAR
+        #Diag
+        A = (Delt_r**2+2*D_eff*Delt_t) /((Delt_r**2)*(1-k*Delt_t))
+        #Ci+1
+        B =  (-D_eff*Delt_r*Delt_t/(2*r[i]-D_eff*Delt_t))/((Delt_r**2)*(1-k*Delt_t))
+        #Ci-1
+        C = (D_eff*Delt_t*Delt_r/(2*r[i])-D_eff*Delt_t)/((Delt_r**2)*(1-k*Delt_t))
+    return A,B,C
+    
+def boundary_conditions(Matrix,C_old,index): 
+    if index == 0 : 
+        
+        #Dirichlet pour r = R
+        C_old[N_r] = Ce
+        #Neumann
+        C_old[0] = 0
+    else: 
+        #Dirichlet pour r = R
+        C_old[N_r] = Ce
+        C_old[0] = 0          
+
+def Plot_anal_num(C_new,iterations,r,nb_iter): 
+   
+    
+    x = sp.symbols('x')
+    T_analy= 0.25*(S/D_eff)*(R**2)*(x*x/(R**2)-1)+Ce
+    sol_analytique_int = sp.lambdify([x], T_analy, "numpy")
+    sol_analytique = sol_analytique_int(r)
+    plt.plot(r,sol_analytique, label="Solution analytique")
+    
+    plt.plot(r,C_new[:,N_t-1],'bo' ,label="Solution numerique")
+    plt.xlim(0,R)
+    y_titre="Concentration molaire"
+   
+    #plt.title(label="Coupe en y=" + y_titre +  " pour " + str(number_of_elements) + " éléments (" + type_element[self.Type_maillage_index] +")" + " avec le " +type_solveur[schema]  + " (Peclet =" + str(self.Peclet[self.Index_Peclet]) + ")" ,fontsize=11,color="black")
+    plt.xlabel("Rayon r [m]")
+    plt.ylabel("C , Concentration en sel [mol/m3]")
+    String = "Solution analytique vs solution numerique avec "  + str(N_r+1) + " noeuds" + " pour le schema " + str(i_schemas+1)
+    plt.title(label=String ,fontsize=11,color="black")
+    plt.legend()
+    plt.show()
+    
+    return sol_analytique
+
+
+def calcul_erreur(nb_iter,C_new,N_t,sol_analytique): 
+    
+    L1error[nb_iter] = 1/R * np.sum(N_r*np.abs(C_new[:,N_t-1]-sol_analytique))
+    L2error[nb_iter] =  np.sqrt(1/R*np.sum(N_r*np.square(C_new[:,N_t-1]-sol_analytique)))
+    Linf_error[nb_iter] = np.max(np.abs(C_new[:,N_t-1]-sol_analytique))
+                                  
+def plot_errors (): 
+    #Plotting Ln(E) vs Ln(1/nx)
+    
+    error = 0.5*iterations**2
+    a,b = np.polyfit(np.log(1/iterations), np.log(L2error), 1)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    
+    #errors plotting
+    ax.plot(iterations,L2error,'-o',label ="L2error")
+    ax.plot(iterations,L1error,'-o',label ="L1error")
+    ax.plot(iterations,Linf_error,'-ko',label ="Linf_error")
+   
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    ax.grid(b=True, which='minor', color='grey', linestyle='--')
+    ax.grid(b=True, which='major', color='k', linestyle='--')
+    plt.ylabel('$\Vert erreur \Vert $')
+    plt.xlabel('$\ Nr $')
+    plt.title(label='Courbes log-log des erreurs pour le schema ' +str(i_schemas+1) ,fontsize=14,color="black")
+    plt.legend(loc="upper left")
+    plt.figtext(.01, .02, "Ordre P = " +str(np.amax(np.abs(np.round(Order,5)))))
+    plt.show()
+        
+##########################################################################################################################
+#                                                                                                                       ##
+#                                                                                                                       ##
+#                                              BOUCLE PRINCIPALE                                                        ##
+#                                                                                                                       ##
+##########################################################################################################################
+#Input Data 
+D = 1 # en m 
+R = D/2
+
+#Coefficient de diffusion effectif 
+D_eff = 10**(-10) # en m2/s
+
+#Constante de reaction 
+k = 4 * 10**(-9) # en s-1
+
+#Concentration de sel 
+Ce = 10 # mol/m3
+
+#Terme source 
+S = 10**(-8) #mol/m3/s
+
+
+#Definition des variables pour les erreurs et ordre 
+iterations = np.array([5,10,20,40,80])
+L1error = np.zeros(len(iterations-1))
+L2error = np.zeros(len(iterations-1))
+Linf_error = np.zeros(len(iterations-1))
+Order= np.zeros(len(iterations)-1)
+
+#Boucle sur les differents schemas 
+for i_schemas in range(2): 
+    
+    #Boucle de raffinement
+    for nb_iter in range(5):
+    
+        #Variables de l'espace 
+        N_r = iterations[nb_iter] -1
+        Delt_r = R/N_r
+
+        #Variables de temps
+        T_max = 10**10 # en s 
+        N_t = 100 
+        Delt_t = T_max/N_t
+    
+        C_new,r = calculations_kernel(i_schemas)
+        sol_analyt = Plot_anal_num(C_new,iterations,r,nb_iter)
+        calcul_erreur(nb_iter,C_new,N_t,sol_analyt) 
+    
+        if nb_iter > 0 : 
+            #Calcul d'ordre seulement pour la norme L2
+            Order[nb_iter-1] = np.log(L2error[nb_iter-1]/L2error[nb_iter])/np.log(2)
+      
+    plot_errors()    
