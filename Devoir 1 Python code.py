@@ -53,7 +53,7 @@ def calculations_kernel(i_schemas):
    
         #line1 = live_plotter(r,C_new[:,t],line1)
     # for t in range(1,N_t):
-    while Erreur >= 10**(-9) :
+    while Erreur >= 10**(-8) :
         t = t+1
         C_new = np.linalg.solve(Matrix,C_old)
         
@@ -199,8 +199,9 @@ S = 10**(-8) #mol/m3/s
 
 #Definition des variables pour les erreurs et ordre 
 # iterations = np.array([20,40,80,160,320])
-iterations = np.array([5,10,20,80,160])
-# iterations = np.array([3,6,12,24,48])
+# iterations = np.array([160,320,640,1280,2560])
+iterations = np.array([5,10,20,40,80])
+#iterations = np.array([3,6,12,24,48])
 L1error = np.zeros(len(iterations-1))
 L2error = np.zeros(len(iterations-1))
 Linf_error = np.zeros(len(iterations-1))
