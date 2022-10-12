@@ -19,7 +19,7 @@ plt.style.use('ggplot')
 
 def calculations_kernel(i_schemas): 
     Matrix = np.zeros([N_r+1,N_r+1])
-    C_new = np.zeros([N_r+1,N_t])
+    C_new = np.zeros([N_r+1])
     C_old = np.zeros([N_r+1])
     r=np.linspace(0,R,N_r+1)
     
@@ -44,20 +44,40 @@ def calculations_kernel(i_schemas):
     #Conditions aux limites pour la premiere iteration 
     C_old[N_r] = Ce
     
+    
     #Real-time plotting
     #line1 = []
-    
+    C_test = np.copy(C_old)
     Erreur = 10
     t= 0 
+    # while Erreur >= 10**(-6) :
+    #     t = t+1
+    #     C_new[:,t] = np.linalg.solve(Matrix,C_old)
+        
+    #     #Calcul d'erreur entre iteration : Condition d'arret
+    #     Erreur = sum(abs(C_new[:,t]-C_test))
+    #     #Assignation de C caluclee a C_old
+    #     C_old = np.copy(C_new[:,t])
+    #     C_test = np.copy(C_old)
+    #     #Terme source
+    #     C_old[1:N_r] = C_old[1:N_r] - Delt_t*S
+    #     #Dirichlet pour r = R
+    #     C_old[N_r] = Ce
+    #     #Neumann
+    #     C_old[0] = 0
+    #     print("iteration "+str(t)+"," + "erreur :" + str(Erreur))
+        
+        #line1 = live_plotter(r,C_new[:,t],line1)
     # for t in range(1,N_t):
     while Erreur >= 10**(-6) :
         t = t+1
-        C_new[:,t] = np.linalg.solve(Matrix,C_old)
+        C_new = np.linalg.solve(Matrix,C_old)
         
         #Calcul d'erreur entre iteration : Condition d'arret
-        Erreur = sum(abs(C_new[:,t])-abs(C_old))
+        Erreur = sum(abs(C_new-C_test))
         #Assignation de C caluclee a C_old
-        C_old = np.copy(C_new[:,t])
+        C_old = np.copy(C_new)
+        C_test = np.copy(C_old)
         #Terme source
         C_old[1:N_r] = C_old[1:N_r] - Delt_t*S
         #Dirichlet pour r = R
@@ -123,7 +143,7 @@ def Plot_anal_num(C_new,iterations,r,nb_iter):
     sol_analytique = sol_analytique_int(r)
     plt.plot(r,sol_analytique, label="Solution analytique")
     
-    plt.plot(r,C_new[:,N_t-1],'bo' ,label="Solution numerique")
+    plt.plot(r,C_new,'bo' ,label="Solution numerique")
     plt.xlim(0,R)
     y_titre="Concentration molaire"
    
@@ -140,9 +160,9 @@ def Plot_anal_num(C_new,iterations,r,nb_iter):
 
 def calcul_erreur(nb_iter,C_new,N_t,sol_analytique): 
     
-    L1error[nb_iter] = 1/R * np.sum(N_r*np.abs(C_new[:,N_t-1]-sol_analytique))
-    L2error[nb_iter] =  np.sqrt(1/R*np.sum(N_r*np.square(C_new[:,N_t-1]-sol_analytique)))
-    Linf_error[nb_iter] = np.max(np.abs(C_new[:,N_t-1]-sol_analytique))
+    L1error[nb_iter] = 1/R * np.sum(N_r*np.abs(C_new-sol_analytique))
+    L2error[nb_iter] =  np.sqrt(1/R*np.sum(N_r*np.square(C_new-sol_analytique)))
+    Linf_error[nb_iter] = np.max(np.abs(C_new-sol_analytique))
                                   
 def plot_errors (): 
     #Plotting Ln(E) vs Ln(1/nx)
