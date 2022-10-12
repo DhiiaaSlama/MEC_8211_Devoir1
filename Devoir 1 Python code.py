@@ -69,7 +69,7 @@ def calculations_kernel(i_schemas):
         
         #line1 = live_plotter(r,C_new[:,t],line1)
     # for t in range(1,N_t):
-    while Erreur >= 10**(-6) :
+    while Erreur >= 10**(-10) :
         t = t+1
         C_new = np.linalg.solve(Matrix,C_old)
         
@@ -160,8 +160,9 @@ def Plot_anal_num(C_new,iterations,r,nb_iter):
 
 def calcul_erreur(nb_iter,C_new,N_t,sol_analytique): 
     
-    L1error[nb_iter] = 1/R * np.sum(N_r*np.abs(C_new-sol_analytique))
-    L2error[nb_iter] =  np.sqrt(1/R*np.sum(N_r*np.square(C_new-sol_analytique)))
+    L1error[nb_iter] = (1/N_r) * np.sum(np.abs(C_new-sol_analytique))
+    # L2error[nb_iter] =  np.sqrt((1/R)*np.sum(N_r*np.square(C_new-sol_analytique)))
+    L2error[nb_iter] =  np.sqrt(1/N_r*np.sum(np.square(C_new-sol_analytique)))
     Linf_error[nb_iter] = np.max(np.abs(C_new-sol_analytique))
                                   
 def plot_errors (): 
@@ -212,14 +213,14 @@ S = 10**(-8) #mol/m3/s
 
 
 #Definition des variables pour les erreurs et ordre 
-iterations = np.array([5,10,20,40,80])
+iterations = np.array([20,40,80,160,320])
 L1error = np.zeros(len(iterations-1))
 L2error = np.zeros(len(iterations-1))
 Linf_error = np.zeros(len(iterations-1))
 Order= np.zeros(len(iterations)-1)
 
 #Boucle sur les differents schemas 
-for i_schemas in range(2): 
+for i_schemas in range(1): 
     
     #Boucle de raffinement
     for nb_iter in range(5):
@@ -230,7 +231,7 @@ for i_schemas in range(2):
 
         #Variables de temps
         T_max = 10**10 # en s 
-        N_t = 100 
+        N_t = 100
         Delt_t = T_max/N_t
     
         C_new,r = calculations_kernel(i_schemas)
@@ -239,6 +240,6 @@ for i_schemas in range(2):
     
         if nb_iter > 0 : 
             #Calcul d'ordre seulement pour la norme L2
-            Order[nb_iter-1] = np.log(L2error[nb_iter-1]/L2error[nb_iter])/np.log(2)
+            Order[nb_iter-1] = np.log(L2error[nb_iter-1]/Linf_error[nb_iter])/np.log(2)
       
     plot_errors()    
