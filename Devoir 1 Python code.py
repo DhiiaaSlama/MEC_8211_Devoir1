@@ -50,26 +50,10 @@ def calculations_kernel(i_schemas):
     C_test = np.copy(C_old)
     Erreur = 10
     t= 0 
-    # while Erreur >= 10**(-6) :
-    #     t = t+1
-    #     C_new[:,t] = np.linalg.solve(Matrix,C_old)
-        
-    #     #Calcul d'erreur entre iteration : Condition d'arret
-    #     Erreur = sum(abs(C_new[:,t]-C_test))
-    #     #Assignation de C caluclee a C_old
-    #     C_old = np.copy(C_new[:,t])
-    #     C_test = np.copy(C_old)
-    #     #Terme source
-    #     C_old[1:N_r] = C_old[1:N_r] - Delt_t*S
-    #     #Dirichlet pour r = R
-    #     C_old[N_r] = Ce
-    #     #Neumann
-    #     C_old[0] = 0
-    #     print("iteration "+str(t)+"," + "erreur :" + str(Erreur))
-        
+   
         #line1 = live_plotter(r,C_new[:,t],line1)
     # for t in range(1,N_t):
-    while Erreur >= 10**(-10) :
+    while Erreur >= 10**(-9) :
         t = t+1
         C_new = np.linalg.solve(Matrix,C_old)
         
@@ -162,7 +146,8 @@ def calcul_erreur(nb_iter,C_new,N_t,sol_analytique):
     
     L1error[nb_iter] = (1/N_r) * np.sum(np.abs(C_new-sol_analytique))
     # L2error[nb_iter] =  np.sqrt((1/R)*np.sum(N_r*np.square(C_new-sol_analytique)))
-    L2error[nb_iter] =  np.sqrt(1/N_r*np.sum(np.square(C_new-sol_analytique)))
+    L2error[nb_iter] =  np.sqrt((1/N_r)*np.sum(np.square(C_new-sol_analytique)))
+    # L2error[nb_iter] =  np.sqrt(1/N_r*Delt_r*np.sum(np.square(C_new-sol_analytique)))
     Linf_error[nb_iter] = np.max(np.abs(C_new-sol_analytique))
                                   
 def plot_errors (): 
@@ -213,17 +198,19 @@ S = 10**(-8) #mol/m3/s
 
 
 #Definition des variables pour les erreurs et ordre 
-iterations = np.array([20,40,80,160,320])
+# iterations = np.array([20,40,80,160,320])
+iterations = np.array([5,10,20,80,160])
+# iterations = np.array([3,6,12,24,48])
 L1error = np.zeros(len(iterations-1))
 L2error = np.zeros(len(iterations-1))
 Linf_error = np.zeros(len(iterations-1))
 Order= np.zeros(len(iterations)-1)
 
 #Boucle sur les differents schemas 
-for i_schemas in range(1): 
+for i_schemas in range(2): 
     
     #Boucle de raffinement
-    for nb_iter in range(5):
+    for nb_iter in range(len(iterations)):
     
         #Variables de l'espace 
         N_r = iterations[nb_iter] -1
@@ -231,7 +218,7 @@ for i_schemas in range(1):
 
         #Variables de temps
         T_max = 10**10 # en s 
-        N_t = 100
+        N_t = 100000
         Delt_t = T_max/N_t
     
         C_new,r = calculations_kernel(i_schemas)
