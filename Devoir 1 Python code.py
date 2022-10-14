@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-# TEST GITHUB
+# 
 Created on Mon Oct 10 09:53:01 2022
 Ecole Polytechnique Montreal - Universite de Montreal
 MEC 8211 : Vérif. et valid. en modélisation numérique
-@authors: Houssem Eddine Younes & Mohamed Dhia Slama
+@auteurs : Houssem Eddine Younes & Mohamed Dhia Slama
 October 2022
 
 """
@@ -15,8 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnchoredText
 from scipy.sparse.linalg.dsolve import linsolve 
 
-#ggplot style for more sophisticated visuals
-plt.style.use('ggplot')
+
 
 def calculations_kernel(i_schemas): 
     Matrix = np.zeros([N_r+1,N_r+1])
@@ -46,17 +45,17 @@ def calculations_kernel(i_schemas):
     C_old[N_r] = Ce
     
     
-    #Real-time plotting
-    #line1 = []
     C_test = np.copy(C_old)
+    
+    #initialisation
     Erreur = 10
     t= 0 
    
-        #line1 = live_plotter(r,C_new[:,t],line1)
-    # for t in range(1,N_t):
-    while Erreur >= 10**(-8) :
+        
+    #Boucle iterative avec une condition de convergence temporel
+    while Erreur >= 10**(-7) :
         t = t+1
-        C_new = np.linalg.solve(Matrix,C_old)
+        C_new = np.linalg.solve((1/Delt_r*Delt_r)*Matrix,C_old)
         
         #Calcul d'erreur entre iteration : Condition d'arret
         Erreur = sum(abs(C_new-C_test))
@@ -71,8 +70,8 @@ def calculations_kernel(i_schemas):
         C_old[0] = 0
         print("iteration "+str(t)+"," + "erreur :" + str(Erreur))
         
-        #line1 = live_plotter(r,C_new[:,t],line1)
-    kk = 0 
+    
+    
     return C_new,r
 def schemas_numeriques(i,schema,r): 
     # Schemas avec termes source constant (pour le devoir 1)
@@ -84,12 +83,13 @@ def schemas_numeriques(i,schema,r):
         #Ci-1
         C= (-D_eff*Delt_t)/(Delt_r**2)
     elif schema == 1: # 2eme schema
-        #Diag
-        A = (1+2*D_eff*Delt_t/(Delt_r**2))
+        # #Diag
+        A = (1+2*D_eff*Delt_t/(Delt_r*Delt_r))
         #Ci+1
-        B=  (-D_eff*Delt_t/(2*Delt_r*r[i])-D_eff*Delt_t/(Delt_r**2))
+        B = -(D_eff*Delt_t/(Delt_r*Delt_r))-(D_eff*Delt_t/(2*r[i]*Delt_r))
         #Ci-1
-        C= (D_eff*Delt_t/(2*Delt_r*r[i])-D_eff*Delt_t/(Delt_r**2))
+        C = (D_eff*Delt_t/(2*r[i]*Delt_r))-(D_eff*Delt_t/(Delt_r*Delt_r))
+        
     #Schemas avec terme source de premier ordre (pour le devoir 2 ) question D
     elif schema ==2 : # 1er schema VAR
         #Diag
@@ -117,7 +117,7 @@ def boundary_conditions(Matrix,C_old,index):
     else: 
         #Dirichlet pour r = R
         C_old[N_r] = Ce
-        C_old[0] = 0          
+        # C_old[0] = 0          
 
 def Plot_anal_num(C_new,iterations,r,nb_iter): 
    
@@ -135,7 +135,7 @@ def Plot_anal_num(C_new,iterations,r,nb_iter):
     #plt.title(label="Coupe en y=" + y_titre +  " pour " + str(number_of_elements) + " éléments (" + type_element[self.Type_maillage_index] +")" + " avec le " +type_solveur[schema]  + " (Peclet =" + str(self.Peclet[self.Index_Peclet]) + ")" ,fontsize=11,color="black")
     plt.xlabel("Rayon r [m]")
     plt.ylabel("C , Concentration en sel [mol/m3]")
-    String = "Solution analytique vs solution numerique avec "  + str(N_r+1) + " noeuds" + " pour le schema " + str(i_schemas+1)
+    String = "Solution analytique vs solution numerique avec "  + str(N_r) + " noeuds" + " pour le schema " + str(i_schemas+1)
     plt.title(label=String ,fontsize=11,color="black")
     plt.legend()
     plt.show()
@@ -155,24 +155,24 @@ def plot_errors ():
     #Plotting Ln(E) vs Ln(1/nx)
     
     error = 0.5*iterations**2
-    a,b = np.polyfit(np.log(1/iterations), np.log(L2error), 1)
+    a,b = np.polyfit(np.log(iterations), np.log(L2error), 1)
     fig = plt.figure()
     ax = fig.add_subplot(111)
     
     #errors plotting
-    ax.plot(iterations,L2error,'-o',label ="L2error")
-    ax.plot(iterations,L1error,'-o',label ="L1error")
-    ax.plot(iterations,Linf_error,'-ko',label ="Linf_error")
+    ax.plot(1/iterations,L2error,'-o',label ="L2error")
+    ax.plot(1/iterations,L1error,'-o',label ="L1error")
+    ax.plot(1/iterations,Linf_error,'-ko',label ="Linf_error")
    
     ax.set_yscale('log')
     ax.set_xscale('log')
     ax.grid(b=True, which='minor', color='grey', linestyle='--')
     ax.grid(b=True, which='major', color='k', linestyle='--')
     plt.ylabel('$\Vert erreur \Vert $')
-    plt.xlabel('$\ Nr $')
+    plt.xlabel('$\ 1/Nr $')
     plt.title(label='Courbes log-log des erreurs pour le schema ' +str(i_schemas+1) ,fontsize=14,color="black")
     plt.legend(loc="upper left")
-    plt.figtext(.01, .02, "Ordre P = " +str(np.amax(np.abs(np.round(Order,5)))))
+    plt.figtext(.01, .02, "Ordre P = " +str(np.abs(np.round(Order[len(Order)-1],5))))
     plt.show()
         
 ##########################################################################################################################
@@ -199,9 +199,9 @@ S = 10**(-8) #mol/m3/s
 
 
 #Definition des variables pour les erreurs et ordre 
-# iterations = np.array([20,40,80,160,320])
+iterations = np.array([20,40,80,160,320])
 # iterations = np.array([160,320,640,1280,2560])
-iterations = np.array([5,10,20,40,80])
+# iterations = np.array([5,10,20,40,80])
 #iterations = np.array([3,6,12,24,48])
 L1error = np.zeros(len(iterations-1))
 L2error = np.zeros(len(iterations-1))
@@ -215,12 +215,12 @@ for i_schemas in range(2):
     for nb_iter in range(len(iterations)):
     
         #Variables de l'espace 
-        N_r = iterations[nb_iter] -1
-        Delt_r = R/N_r
+        N_r = iterations[nb_iter] 
+        Delt_r = (R)/N_r
 
         #Variables de temps
         T_max = 10**10 # en s 
-        N_t = 100000
+        N_t = 10000
         Delt_t = T_max/N_t
     
         C_new,r = calculations_kernel(i_schemas)
@@ -229,6 +229,6 @@ for i_schemas in range(2):
     
         if nb_iter > 0 : 
             #Calcul d'ordre seulement pour la norme L2
-            Order[nb_iter-1] = np.log(L2error[nb_iter-1]/Linf_error[nb_iter])/np.log(2)
+            Order[nb_iter-1] = np.log(L2error[nb_iter]/L2error[nb_iter-1])/np.log(2)
       
     plot_errors()    
