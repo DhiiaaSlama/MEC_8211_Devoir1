@@ -38,8 +38,9 @@ def calculations_kernel(i_schemas):
     
     #Conditions initiales 
     C_old[:] = 0 
+    if i_schemas <= 1 :   
     #Ajout du terme source dans le vecteur de droite 
-    C_old[1:N_r] -= Delt_t*S
+        C_old[1:N_r] -= Delt_t*S
     
     #Conditions aux limites pour la premiere iteration 
     C_old[N_r] = Ce
@@ -63,7 +64,8 @@ def calculations_kernel(i_schemas):
         C_old = np.copy(C_new)
         C_test = np.copy(C_old)
         #Terme source
-        C_old[1:N_r] = C_old[1:N_r] - Delt_t*S
+        if i_schemas <= 1 :   
+            C_old[1:N_r] = C_old[1:N_r] - Delt_t*S
         #Dirichlet pour r = R
         C_old[N_r] = Ce
         #Neumann
@@ -93,18 +95,23 @@ def schemas_numeriques(i,schema,r):
     #Schemas avec terme source de premier ordre (pour le devoir 2 ) question D
     elif schema ==2 : # 1er schema VAR
         #Diag
-        A = (Delt_r**2+D_eff*Delt_t*Delt_r/r[i]+2*D_eff*Delt_t)/((Delt_r**2)*(1-k*Delt_t))
+        # A = (Delt_r**2+D_eff*Delt_t*Delt_r/r[i]+2*D_eff*Delt_t)/((Delt_r**2)*(1-k*Delt_t))
+        A = (Delt_r*Delt_r+D_eff*Delt_t*Delt_r/r[i]+2*D_eff*Delt_t)/(Delt_r*Delt_r*(1-k*Delt_t))
         #Ci+1
-        B= (-D_eff*Delt_t*Delt_r/r[i]-D_eff*Delt_t)/((Delt_r**2)*(1-k*Delt_t))
+        C=(-D_eff*Delt_t)/(Delt_r*Delt_r*(1-k*Delt_t))
+        # B= (-D_eff*Delt_t*Delt_r/r[i]-D_eff*Delt_t)/((Delt_r**2)*(1-k*Delt_t))
         #Ci-1
-        C= (-D_eff*Delt_t)/((Delt_r**2)*(1-k*Delt_t))
+        B = (-D_eff*Delt_t*Delt_r/r[i]-D_eff*Delt_t)/(Delt_r*Delt_r*(1-k*Delt_t))
+        # C= (-D_eff*Delt_t)/((Delt_r**2)*(1-k*Delt_t))
     elif schema ==3: #2eme schema VAR
         #Diag
         A = (Delt_r**2+2*D_eff*Delt_t) /((Delt_r**2)*(1-k*Delt_t))
         #Ci+1
-        B =  (-D_eff*Delt_r*Delt_t/(2*r[i]-D_eff*Delt_t))/((Delt_r**2)*(1-k*Delt_t))
+        # B =  (-D_eff*Delt_r*Delt_t/(2*r[i]-D_eff*Delt_t))/((Delt_r**2)*(1-k*Delt_t))
+        C= (D_eff*Delt_t*Delt_r/(2*r[i])-D_eff*Delt_t)/(Delt_r*Delt_r*(1-k*Delt_t))
         #Ci-1
-        C = (D_eff*Delt_t*Delt_r/(2*r[i])-D_eff*Delt_t)/((Delt_r**2)*(1-k*Delt_t))
+        # C = (D_eff*Delt_t*Delt_r/(2*r[i])-D_eff*Delt_t)/((Delt_r**2)*(1-k*Delt_t))
+        B = (-D_eff*Delt_t*Delt_r/(2*r[i])-D_eff*Delt_t)/(Delt_r*Delt_r*(1-k*Delt_t))
     return A,B,C
     
 def boundary_conditions(Matrix,C_old,index): 
@@ -189,7 +196,7 @@ R = D/2
 D_eff = 10**(-10) # en m2/s
 
 #Constante de reaction 
-k = 4 * 10**(-9) # en s-1
+k = 2 * 10**(-9) # en s-1
 
 #Concentration de sel 
 Ce = 10 # mol/m3
@@ -209,7 +216,7 @@ Linf_error = np.zeros(len(iterations-1))
 Order= np.zeros(len(iterations)-1)
 
 #Boucle sur les differents schemas 
-for i_schemas in range(2): 
+for i_schemas in range(0,4): 
     
     #Boucle de raffinement
     for nb_iter in range(len(iterations)):
